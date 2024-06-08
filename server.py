@@ -32,9 +32,6 @@ from helpers.fastapi import (
     start_server,
 )
 
-# Allows docker to override which HOST to connect to for data
-DATA_HOST = os.environ.get("DATA_HOST", HOST)
-
 def main():
     # Make a spark session
     spark = SparkSession.builder.appName("Perspective Demo").getOrCreate()
@@ -43,10 +40,10 @@ def main():
     manager = PerspectiveManager()
 
     # Get spark streaming dfs
-    machines_df = get_df_from_server(spark, MACHINE_SCHEMA_SPARK, DATA_HOST, MACHINES_PORT)
-    usage_df = get_df_from_server(spark, USAGE_SCHEMA_SPARK, DATA_HOST, USAGE_PORT)
-    status_df = get_df_from_server(spark, STATUS_SCHEMA_SPARK, DATA_HOST, STATUS_PORT)
-    jobs_df = get_df_from_server(spark, JOBS_SCHEMA_SPARK, DATA_HOST, JOBS_PORT)
+    machines_df = get_df_from_server(spark, MACHINE_SCHEMA_SPARK, HOST, MACHINES_PORT)
+    usage_df = get_df_from_server(spark, USAGE_SCHEMA_SPARK, HOST, USAGE_PORT)
+    status_df = get_df_from_server(spark, STATUS_SCHEMA_SPARK, HOST, STATUS_PORT)
+    jobs_df = get_df_from_server(spark, JOBS_SCHEMA_SPARK, HOST, JOBS_PORT)
 
     # construct 4 separate perspective tables
     machines_table = PerspectiveTable(MACHINE_SCHEMA, index="machine_id")

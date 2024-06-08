@@ -8,7 +8,8 @@ from time import sleep
 import os
 
 
-HOST = "localhost"
+# Allows docker to override which HOST to connect to for data
+HOST = os.environ.get("DATA_HOST", "localhost")
 MACHINES_PORT = 8081
 USAGE_PORT = 8082
 STATUS_PORT = 8083
