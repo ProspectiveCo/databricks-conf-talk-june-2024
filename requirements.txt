@@ -1,0 +1,8 @@
+fastapi
+orjson
+perspective-python==2.10.1
+pyarrow
+pyspark
+superstore
+uvicorn
+websocket-client
