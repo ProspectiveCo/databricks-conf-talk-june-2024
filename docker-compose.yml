@@ -21,6 +21,7 @@ services:
 
   jupyter:
     build: .
+    # Useful for development
     volumes:
       - .:/usr/src/app
     environment:
