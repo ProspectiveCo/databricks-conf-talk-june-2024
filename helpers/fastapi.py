@@ -6,7 +6,7 @@ import pyarrow.json
 import threading
 import uvicorn
 from datetime import datetime, timedelta
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from io import BytesIO
 from perspective import (
@@ -43,37 +43,17 @@ def perspective_spark_bridge(
     for table_name in tables:
         @app.websocket(f"/tables/{table_name}")
         async def ws(websocket: WebSocket, table_name=table_name):
-            await websocket.accept()
-            data = await websocket.receive_json()
+            try:
+                await websocket.accept()
+                while True:
+                    data = await websocket.receive_json()
 
-            if not data:
-                return
-            # If we use row-by-row, e.g. _push_to_psp_single in spark.py,
-            # we can just do
-            # tables[table_name].update([data])
+                    if not data:
+                        return
 
-            # But if we want to scale up, lets sacrifice some
-            # ugliness for performance by parsing data
-            # into arrow tables and loading those into perspective
-            # in batches
-
-            # pyarrow expects a file, so make a fake in-memory file
-            # and write the data
-            io = BytesIO()
-            io.write(b"\n".join(d.encode() for d in data))
-            io.seek(0)
-
-            # Load in pyarrow using default threadpool
-            table = pyarrow.json.read_json(io)
-
-            # Now go from arrow table to bytes of record batch
-            stream = pyarrow.BufferOutputStream()
-            writer = pyarrow.RecordBatchStreamWriter(stream, table.schema)
-            writer.write_table(table)
-            writer.close()
-
-            # And finally load this into perspective, GIL-free
-            tables[table_name].update(stream.getvalue().to_pybytes())
+                    tables[table_name].update(data)
+            except WebSocketDisconnect:
+                pass
 
     return app
 

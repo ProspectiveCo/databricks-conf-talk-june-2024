@@ -22,6 +22,8 @@ from pyspark.sql.types import (
     FloatType,
     DateType,
 )
+from orjson import dumps
+from websocket import create_connection
 
 _type_map = {
     int: IntegerType,
@@ -60,27 +62,29 @@ def get_df_from_server(spark, schema, host, port):
 
 
 def push_to_perspective(df, table, host, port):
-    # def _push_to_psp_single(row, table=table, host=host, port=port):
-    #     from orjson import dumps
-    #     from websocket import create_connection
+    class PspWriter:
+        def __init__(self, host: str, port: int, table: str):
+            self.host = host
+            self.port = port
+            self.table = table
+            self.batch = []
 
-    #     try:
-    #         ws = create_connection(f"ws://{host}:{port}/tables/{table}")
-    #         ws.send(dumps(row.asDict()))
-    #     except:
-    #         # Ignore
-    #         ...
+        def open(self, partition_id, epoch_id):
+            self.ws = create_connection(f"ws://{self.host}:{self.port}/tables/{self.table}")
+            return True
 
-    def _push_to_psp(batch_df, batch_id, table=table, host=host, port=port):
-        from orjson import dumps
-        from websocket import create_connection
+        def process(self, row):
+            # self.ws.send(dumps([row.asDict()]))
+            if len(self.batch) > 50:
+                self.ws.send(dumps(self.batch))
+                self.batch = []
+            else:
+                self.batch.append(row.asDict())
 
-        try:
-            ws = create_connection(f"ws://{host}:{port}/tables/{table}")
-            ws.send(dumps(batch_df.toJSON().collect()))
-        except:
-            # Ignore
-            ...
+        def close(self, error):
+            self.ws.send(dumps(self.batch))
+            self.batch = []
+            self.ws.close()
+            pass
 
-    # df.writeStream.foreach(_push_to_psp_single).start()
-    df.writeStream.foreachBatch(_push_to_psp).start()
+    df.writeStream.foreach(PspWriter(host, port, table)).start()

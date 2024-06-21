@@ -34,7 +34,14 @@ from helpers.fastapi import (
 
 def main():
     # Make a spark session
-    spark = SparkSession.builder.appName("Perspective Demo").getOrCreate()
+    spark = SparkSession.builder \
+        .appName("Perspective Demo") \
+        .config("spark.executor.memory", "2g") \
+        .config("spark.driver.memory", "2g") \
+        .config("spark.memory.fraction", "0.8") \
+        .config("spark.memory.storageFraction", "0.2") \
+        .config("spark.streaming.backpressure.enabled", "true") \
+        .getOrCreate()
 
     # Construct a perspective manager
     manager = PerspectiveManager()
